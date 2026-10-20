@@ -1,59 +1,59 @@
-# 📄 المختبر 1.3: وثيقة تحليل بنية الوكيل (Agent Structure Analysis)
+# 📄 Lab 1.3: Agent Structure Analysis Document
 
-### 1. نظرة عامة (Overview)
-تستعرض هذه الوثيقة تحليلاً هندسياً لوكيل مساعد الصيانة الأساسي الذي تم تطويره في **المختبر 1.1** (الخيار ب)[span_1](start_span)[span_1](end_span). صُمم الوكيل للتفاعل مع سجلات معدات الصيانة (`maintenance_assets.csv`) عبر الاستعلامات بلغة طبيعية[span_2](start_span)[span_2](end_span)، حيث يقوم بترجمة طلبات المستخدم إلى استدعاءات منظمة للأدوات (`search_assets`) وإعادة معلومات الأصول ذات الصلة مع الاستشهاد بالمصادر[span_3](start_span)[span_3](end_span).
+### 1. Overview
+This document presents an engineering analysis of the baseline maintenance assistant agent developed in **Lab 1.1** (Option B). The agent is designed to interface with maintenance equipment records (`maintenance_assets.csv`) via natural language queries, translating user requests into structured tool calls (`search_assets`) and returning relevant asset information with source citations.
 
 ---
 
-### 2. ربط الكود بعناصر الوكيل الأساسية (Mapping Code to Core Agent Elements)
-تم ربط العناصر الأربعة الأساسية لهندسة الوكيل بملف `agent.py` بشكل مباشر كالتالي[span_4](start_span)[span_4](end_span):
+### 2. Mapping Code to Core Agent Elements
+The four fundamental elements of the agent architecture are mapped directly to `agent.py` as follows:
 
-| عنصر الوكيل | مكان تواجده في ملف `agent.py` | الدور والمفهوم |
+| Agent Element | Location in `agent.py` | Role & Concept |
 | :--- | :--- | :--- |
-| **الموجه (Prompt)** | متغير النص `SYSTEM` | يحدد حدود النظام، والشخصية، وقواعد الاستشهاد، وتعليمات المعالجة البديلة[span_5](start_span)[span_5](end_span). |
-| **حلقة الوكيل (Agent Loop)** | حلقة التكرار `for _ in range(5)` داخل `run_agent()` | تنفذ دورة (التخطيط ← التنفيذ ← المراقبة) الذاتية حتى الحد الأقصى لخطوات التكرار[span_6](start_span)[span_6](end_span). |
-| **واجهة الأدوات (Tool Interface)** | مخطط `TOOLS` + دالة `search_assets()` | تنسيق وتنفيذ قدرات استدعاء الدوال (Function Calling) على بيانات ملف الـ CSV المحلي[span_7](start_span)[span_7](end_span). |
-| **الذاكرة (Memory)** | قائمة `messages` | تعمل كحِساء سياقي قصير المدى لتتبع المحادثات ونتائج استدعاء الأدوات[span_8](start_span)[span_8](end_span). |
+| **Prompt** | `SYSTEM` string variable | Defines system boundaries, persona, citation rules, and fallback instructions. |
+| **Agent Loop** | `for _ in range(5)` inside `run_agent()` | Implements the autonomous **Plan $\rightarrow$ Act $\rightarrow$ Observe** cycle up to a maximum step count. |
+| **Tool Interface** | `TOOLS` schema + `search_assets()` function | Formats and executes function calling capabilities over local CSV data. |
+| **Memory** | `messages` list | Serves as short-term conversational context and message/tool call tracking. |
 
 ---
 
-### 3. المتطلبات الوظيفية (Functional Requirements)
-* **FR-1:** يجب على الوكيل تحليل أسئلة المستخدم المتعلقة بمعدات المصنع واستخراج معاملات البحث المنظمة (الحالة، مستوى الأهمية، نوع الأصل، الموقع)[span_9](start_span)[span_9](end_span).
-* **FR-2:** يجب على الوكيل استدعاء أداة `search_assets` بالمعاملات المناسبة عندما يتطلب الأمر استرجاع معلومات من قاعدة البيانات[span_10](start_span)[span_10](end_span).
-* **FR-3:** يجب على الوكيل ذكر معرّفات الأصول (`asset_id`) المحددة في كل رد يحتوي على تفاصيل المعدات[span_11](start_span)[span_11](end_span).
-* **FR-4:** يجب على الوكيل توضيح الأمر بوضوح عندما لا توجد السجلات المطلوبة أو معلومات المعدات في مجموعة البيانات[span_12](start_span)[span_12](end_span).
-* **FR-5:** يجب على الوكيل الحفاظ على سياق المحادثة ونتائج الأدوات داخل ذاكرة مؤقتة قصيرة المدى (قائمة `messages`)[span_13](start_span)[span_13](end_span).
-* **FR-6:** يجب على الوكيل تقييد تنفيذ الحلقة الذاتية بحد أقصى يبلغ 5 تكرارات لمنع الحلقات اللانهائية[span_14](start_span)[span_14](end_span).
+### 3. Functional Requirements
+* **FR-1:** The agent shall parse user questions regarding plant equipment and extract structured search parameters (status, criticality, asset type, location).
+* **FR-2:** The agent shall invoke the `search_assets` tool with appropriate parameters when information retrieval from the database is required.
+* **FR-3:** The agent shall cite specific `asset_id`s in every response containing equipment details.
+* **FR-4:** The agent shall state clearly when requested records or equipment information cannot be found in the dataset.
+* **FR-5:** The agent shall maintain conversational context and tool responses within a short-term memory buffer (`messages` list).
+* **FR-6:** The agent shall limit autonomous loop execution to a maximum of 5 iterations to prevent infinite loops.
 
 ---
 
-### 4. مخطط المكونات (Component Diagram)
+### 4. Component Diagram (PlantUML)
 
 ```plantuml
 @startuml
 skinparam componentStyle uml2
 
-actor المستخدم as User
-package "هندسة الوكيل الأساسي" {
-    component "واجهة المستخدم (CLI)" as UI
-    component "حلقة الوكيل\n(run_agent)" as Loop
-    component "الموجه النظامي (Prompt)" as Prompt
-    component "واجهة نموذج اللغة\n(OpenAI / OpenRouter)" as Model
-    component "واجهة الأدوات\n(search_assets)" as Tools
-    database "الذاكرة\n(قائمة messages)" as Mem
-    database "ملف سجلات الأصول CSV\n(maintenance_assets.csv)" as DB
+actor User
+package "Baseline Agent Architecture" {
+    component "User Interface (CLI)" as UI
+    component "Agent Loop\n(run_agent)" as Loop
+    component "System Prompt" as Prompt
+    component "LLM Client\n(OpenAI / OpenRouter)" as Model
+    component "Tool Interface\n(search_assets)" as Tools
+    database "Memory\n(messages list)" as Mem
+    database "Asset CSV File\n(maintenance_assets.csv)" as DB
 }
 
-User --> UI : 1. إرسال الاستعلام
-UI --> Loop : 2. بدء المهمة
-Loop --> Prompt : 3. تحميل قواعد النظام
-Loop --> Mem : 4. إلحاق السياق
-Loop --> Model : 5. إرسال الموجه + الأدوات + السجل
-Model --> Loop : 6. إرجاع التفكير / أمر الأداة
-Loop --> Tools : 7. تنفيذ استدعاء الأداة
-Tools --> DB : 8. الاستعلام عن سجلات الأصول
-DB --> Tools : 9. إرجاع الصفوف المتطابقة
-Tools --> Loop : 10. تغذية راجعة للملاحظة
-Loop --> Mem : 11. إلحاق نتيجة الأداة
-Loop --> UI : 12. تقديم الإجابة النهائية
+User --> UI : 1. Submit Query
+UI --> Loop : 2. Initialize Task
+Loop --> Prompt : 3. Load System Rules
+Loop --> Mem : 4. Append Context
+Loop --> Model : 5. Send Prompt + Tools + History
+Model --> Loop : 6. Return Thought / Tool Call
+Loop --> Tools : 7. Execute Tool Call
+Tools --> DB : 8. Query Asset Records
+DB --> Tools : 9. Return Matching Rows
+Tools --> Loop : 10. Observation Feedback
+Loop --> Mem : 11. Append Tool Result
+Loop --> UI : 12. Deliver Final Answer
 @enduml
